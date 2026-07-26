@@ -14,6 +14,22 @@ class Todo {
   toggleComplete() {
     this.completed = !this.completed;
   }
+
+  updateDetails(updates) {
+    const editableFields = [
+      "title",
+      "description",
+      "dueDate",
+      "priority",
+      "notes",
+    ];
+
+    editableFields.forEach((field) => {
+      if (updates[field] !== undefined) {
+        this[field] = updates[field];
+      }
+    });
+  }
 }
 
 export default Todo;

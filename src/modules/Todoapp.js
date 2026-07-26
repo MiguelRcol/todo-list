@@ -120,6 +120,23 @@ toggleTodoComplete(todoId, projectId = this.activeProjectId) {
   // Devolver true
   return true;
 }
+updateTodo(todoId, updates, projectId = this.activeProjectId) {
+  const project = this.getProjectById(projectId);
+
+  if (!project) {
+    return false;
+  }
+
+  const todo = project.getTodoById(todoId);
+
+  if (!todo) {
+    return false;
+  }
+
+  todo.updateDetails(updates);
+
+  return true;
+}
 }
 
 export default TodoApp;
