@@ -7,7 +7,6 @@
   "dev": "webpack serve --open --mode development",
   "build": "webpack --mode production"
 },
-"keywords": [],
   "keywords": [],
   "author": "",
   "license": "ISC",
