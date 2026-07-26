@@ -1,5 +1,5 @@
 import Project from "./Project.js";
-import Todo from "./todo.js";
+import Todo from "./Todo.js";
 
 class TodoApp {
   constructor() {
