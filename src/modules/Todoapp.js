@@ -5,6 +5,7 @@ constructor() {
   const inbox = new Project("Inbox");
 
   this.projects = [inbox];
+  this.defaultProject = inbox.id;
   this.activeProjectId = inbox.id;
 }
 
@@ -32,6 +33,27 @@ constructor() {
     // Devolver el proyecto activo
     return this.getProjectById(this.activeProjectId);
   }
+  removeProject(projectId) {
+  if (projectId === this.defaultProjectId) {
+    return false;
+  }
+
+  const project = this.getProjectById(projectId);
+
+  if (!project) {
+    return false;
+  }
+
+  this.projects = this.projects.filter(
+    (currentProject) => currentProject.id !== projectId
+  );
+
+  if (this.activeProjectId === projectId) {
+    this.activeProjectId = this.defaultProjectId;
+  }
+
+  return true;
+}
 }
 
 export default TodoApp;
