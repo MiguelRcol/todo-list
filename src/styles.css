@@ -886,3 +886,19 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+#todo-details-dialog .modal__header {
+  padding: 24px 24px 12px;
+}
+
+#todo-details-dialog .task-details {
+  padding: 12px 24px 24px;
+}
+
+#todo-details-dialog .modal__actions {
+  padding: 0 24px 24px;
+}
+
+#todo-details-dialog .modal__close {
+  flex-shrink: 0;
+}
