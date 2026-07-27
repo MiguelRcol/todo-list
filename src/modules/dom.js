@@ -105,19 +105,19 @@ function renderTodos(todoApp) {
 
     const detailsButton = document.createElement("button");
 
-detailsButton.type = "button";
-detailsButton.classList.add(
-  "todo-card__details",
-  "secondary-button"
-);
+    detailsButton.type = "button";
+    detailsButton.classList.add(
+      "todo-card__details",
+      "secondary-button"
+    );
 
-detailsButton.textContent = "Details";
-detailsButton.dataset.action = "details";
+    detailsButton.textContent = "Details";
+    detailsButton.dataset.action = "details";
 
-detailsButton.setAttribute(
-  "aria-label",
-  `View details for ${todo.title}`
-);
+    detailsButton.setAttribute(
+      "aria-label",
+      `View details for ${todo.title}`
+    );
 
     const deleteButton = document.createElement("button");
 
@@ -136,8 +136,7 @@ detailsButton.setAttribute(
     );
 
     content.append(title, dueDate);
-    actions.appendChild(detailsButton);
-    actions.appendChild(deleteButton);
+    actions.append(detailsButton, deleteButton);
 
     todoCard.append(checkbox, content, actions);
     todosList.appendChild(todoCard);
@@ -211,7 +210,7 @@ function setupInboxNavigation(todoApp) {
   });
 }
 
-function setupTodoInteractions(todoApp){
+function setupTodoInteractions(todoApp) {
   const todosList = document.querySelector("#todos-list");
 
   const detailsDialog = document.querySelector(
@@ -224,6 +223,10 @@ function setupTodoInteractions(todoApp){
 
   const cancelDetailsButton = document.querySelector(
     "#cancel-details-dialog"
+  );
+
+  const editTodoButton = document.querySelector(
+    "#open-edit-todo-form"
   );
 
   const detailsTitle = document.querySelector(
@@ -254,7 +257,12 @@ function setupTodoInteractions(todoApp){
     "#details-notes"
   );
 
+  let selectedTodoId = null;
+  let selectedProjectId = null;
+
   function closeDetailsDialog() {
+    selectedTodoId = null;
+    selectedProjectId = null;
     detailsDialog.close();
   }
 
@@ -335,6 +343,9 @@ function setupTodoInteractions(todoApp){
         return;
       }
 
+      selectedTodoId = todo.id;
+      selectedProjectId = activeProject.id;
+
       detailsTitle.textContent = todo.title;
 
       detailsDescription.textContent =
@@ -359,6 +370,82 @@ function setupTodoInteractions(todoApp){
 
       detailsDialog.showModal();
     }
+  });
+
+  editTodoButton.addEventListener("click", () => {
+    const project = todoApp.getProjectById(
+      selectedProjectId
+    );
+
+    if (!project) {
+      return;
+    }
+
+    const todo = project.getTodoById(selectedTodoId);
+
+    if (!todo) {
+      return;
+    }
+
+    const todoDialog = document.querySelector(
+      "#todo-dialog"
+    );
+
+    const todoForm = document.querySelector("#todo-form");
+
+    const dialogTitle = document.querySelector(
+      "#todo-dialog-title"
+    );
+
+    const submitButton = todoForm.querySelector(
+      'button[type="submit"]'
+    );
+
+    const titleInput = document.querySelector(
+      "#todo-title"
+    );
+
+    const descriptionInput = document.querySelector(
+      "#todo-description"
+    );
+
+    const dueDateInput = document.querySelector(
+      "#todo-due-date"
+    );
+
+    const prioritySelect = document.querySelector(
+      "#todo-priority"
+    );
+
+    const projectSelect = document.querySelector(
+      "#todo-project"
+    );
+
+    const notesInput = document.querySelector(
+      "#todo-notes"
+    );
+
+    populateProjectOptions(todoApp);
+
+    todoForm.dataset.mode = "edit";
+    todoForm.dataset.todoId = todo.id;
+    todoForm.dataset.projectId = project.id;
+
+    dialogTitle.textContent = "Edit task";
+    submitButton.textContent = "Save changes";
+
+    titleInput.value = todo.title;
+    descriptionInput.value = todo.description || "";
+    dueDateInput.value = todo.dueDate || "";
+    prioritySelect.value = todo.priority || "medium";
+    projectSelect.value = project.id;
+    notesInput.value = todo.notes || "";
+
+    projectSelect.disabled = true;
+
+    detailsDialog.close();
+    todoDialog.showModal();
+    titleInput.focus();
   });
 }
 
@@ -452,6 +539,14 @@ function setupTodoForm(todoApp) {
   const dialog = document.querySelector("#todo-dialog");
   const form = document.querySelector("#todo-form");
 
+  const dialogTitle = document.querySelector(
+    "#todo-dialog-title"
+  );
+
+  const submitButton = form.querySelector(
+    'button[type="submit"]'
+  );
+
   const titleInput = document.querySelector("#todo-title");
 
   const descriptionInput = document.querySelector(
@@ -488,16 +583,44 @@ function setupTodoForm(todoApp) {
     "#cancel-todo-form"
   );
 
+  form.dataset.mode = "create";
+
   openButton.addEventListener("click", () => {
+    form.reset();
+
+    form.dataset.mode = "create";
+    delete form.dataset.todoId;
+    delete form.dataset.projectId;
+
+    dialogTitle.textContent = "New task";
+    submitButton.textContent = "Create task";
+
+    projectSelect.disabled = false;
+
+    errorMessage.textContent = "";
+    titleInput.removeAttribute("aria-invalid");
+
     populateProjectOptions(todoApp);
+
     dialog.showModal();
     titleInput.focus();
   });
 
   function closeDialog() {
     form.reset();
+
+    form.dataset.mode = "create";
+    delete form.dataset.todoId;
+    delete form.dataset.projectId;
+
+    dialogTitle.textContent = "New task";
+    submitButton.textContent = "Create task";
+
+    projectSelect.disabled = false;
+
     errorMessage.textContent = "";
     titleInput.removeAttribute("aria-invalid");
+
     dialog.close();
   }
 
@@ -527,6 +650,35 @@ function setupTodoForm(todoApp) {
 
       titleInput.setAttribute("aria-invalid", "true");
       titleInput.focus();
+
+      return;
+    }
+
+    if (form.dataset.mode === "edit") {
+      const todoId = form.dataset.todoId;
+      const originalProjectId = form.dataset.projectId;
+
+      const updated = todoApp.updateTodo(
+        todoId,
+        {
+          title,
+          description,
+          dueDate,
+          priority,
+          notes,
+        },
+        originalProjectId
+      );
+
+      if (!updated) {
+        errorMessage.textContent =
+          "The task could not be updated.";
+
+        return;
+      }
+
+      renderTodos(todoApp);
+      closeDialog();
 
       return;
     }
