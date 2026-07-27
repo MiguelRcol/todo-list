@@ -829,3 +829,12 @@ a {
     grid-template-columns: 1fr;
   }
 }
+.todo-card__delete {
+  color: var(--text-muted);
+}
+
+.todo-card__delete:hover {
+  background-color: rgb(185 77 69 / 10%);
+  color: var(--danger);
+  transform: none;
+}

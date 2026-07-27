@@ -59,6 +59,9 @@ function renderTodos(todoApp) {
     emptyState.append(title, description);
     todosList.appendChild(emptyState);
 
+    emptyState.append(title, description);
+    todosList.appendChild(emptyState);
+
     return;
   }
 
@@ -81,9 +84,12 @@ function renderTodos(todoApp) {
     checkbox.type = "checkbox";
     checkbox.classList.add("todo-card__checkbox");
     checkbox.checked = todo.completed;
+
     checkbox.setAttribute(
       "aria-label",
-      `Mark ${todo.title} as completed`
+      todo.completed
+        ? `Mark ${todo.title} as incomplete`
+        : `Mark ${todo.title} as completed`
     );
 
     const content = document.createElement("div");
@@ -97,8 +103,29 @@ function renderTodos(todoApp) {
     dueDate.classList.add("todo-card__date");
     dueDate.textContent = todo.dueDate || "No due date";
 
+    const actions = document.createElement("div");
+    actions.classList.add("todo-card__actions");
+
+    const deleteButton = document.createElement("button");
+
+    deleteButton.type = "button";
+    deleteButton.classList.add(
+      "icon-button",
+      "todo-card__delete"
+    );
+
+    deleteButton.textContent = "×";
+    deleteButton.dataset.action = "delete";
+
+    deleteButton.setAttribute(
+      "aria-label",
+      `Delete ${todo.title}`
+    );
+
     content.append(title, dueDate);
-    todoCard.append(checkbox, content);
+    actions.appendChild(deleteButton);
+
+    todoCard.append(checkbox, content, actions);
     todosList.appendChild(todoCard);
   });
 }
@@ -197,11 +224,38 @@ function setupTodoInteractions(todoApp) {
 
     renderTodos(todoApp);
   });
+
+  todosList.addEventListener("click", (event) => {
+    const deleteButton = event.target.closest(
+      '[data-action="delete"]'
+    );
+
+    if (!deleteButton) {
+      return;
+    }
+
+    const todoCard = deleteButton.closest(".todo-card");
+
+    if (!todoCard) {
+      return;
+    }
+
+    const todoId = todoCard.dataset.todoId;
+    const removed = todoApp.removeTodo(todoId);
+
+    if (!removed) {
+      return;
+    }
+
+    renderTodos(todoApp);
+  });
 }
+
 function setupProjectForm(todoApp) {
   const dialog = document.querySelector("#project-dialog");
   const form = document.querySelector("#project-form");
   const nameInput = document.querySelector("#project-name");
+
   const errorMessage = document.querySelector(
     "#project-name-error"
   );
@@ -233,6 +287,13 @@ function setupProjectForm(todoApp) {
   closeButton.addEventListener("click", closeDialog);
   cancelButton.addEventListener("click", closeDialog);
 
+  nameInput.addEventListener("input", () => {
+    if (nameInput.value.trim()) {
+      errorMessage.textContent = "";
+      nameInput.removeAttribute("aria-invalid");
+    }
+  });
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
 
@@ -254,6 +315,7 @@ function setupProjectForm(todoApp) {
     closeDialog();
   });
 }
+
 function populateProjectOptions(todoApp) {
   const projectSelect = document.querySelector(
     "#todo-project"
@@ -274,10 +336,31 @@ function populateProjectOptions(todoApp) {
     projectSelect.appendChild(option);
   });
 }
+
 function setupTodoForm(todoApp) {
   const dialog = document.querySelector("#todo-dialog");
   const form = document.querySelector("#todo-form");
+
   const titleInput = document.querySelector("#todo-title");
+
+  const descriptionInput = document.querySelector(
+    "#todo-description"
+  );
+
+  const dueDateInput = document.querySelector(
+    "#todo-due-date"
+  );
+
+  const prioritySelect = document.querySelector(
+    "#todo-priority"
+  );
+
+  const projectSelect = document.querySelector(
+    "#todo-project"
+  );
+
+  const notesInput = document.querySelector("#todo-notes");
+
   const errorMessage = document.querySelector(
     "#todo-title-error"
   );
@@ -309,6 +392,78 @@ function setupTodoForm(todoApp) {
 
   closeButton.addEventListener("click", closeDialog);
   cancelButton.addEventListener("click", closeDialog);
+
+  titleInput.addEventListener("input", () => {
+    if (titleInput.value.trim()) {
+      errorMessage.textContent = "";
+      titleInput.removeAttribute("aria-invalid");
+    }
+  });
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const title = titleInput.value.trim();
+    const description = descriptionInput.value.trim();
+    const dueDate = dueDateInput.value;
+    const priority = prioritySelect.value;
+    const projectId = projectSelect.value;
+    const notes = notesInput.value.trim();
+
+    if (!title) {
+      errorMessage.textContent =
+        "Please enter a task title.";
+
+      titleInput.setAttribute("aria-invalid", "true");
+      titleInput.focus();
+
+      return;
+    }
+
+    const newTodo = todoApp.addTodo(
+      title,
+      description,
+      dueDate,
+      priority,
+      notes,
+      projectId
+    );
+
+    if (!newTodo) {
+      errorMessage.textContent =
+        "The selected project could not be found.";
+
+      return;
+    }
+
+    todoApp.setActiveProject(projectId);
+
+    const sidebarButtons = document.querySelectorAll(
+      ".sidebar-nav__button"
+    );
+
+    sidebarButtons.forEach((button) => {
+      button.classList.remove(
+        "sidebar-nav__button--active"
+      );
+    });
+
+    if (projectId === todoApp.defaultProjectId) {
+      const inboxButton = document.querySelector(
+        '[data-view="inbox"]'
+      );
+
+      inboxButton.classList.add(
+        "sidebar-nav__button--active"
+      );
+    }
+
+    renderProjects(todoApp);
+    renderCurrentProject(todoApp);
+    renderTodos(todoApp);
+
+    closeDialog();
+  });
 }
 
 export {
