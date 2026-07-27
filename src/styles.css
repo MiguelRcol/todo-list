@@ -838,3 +838,51 @@ a {
   color: var(--danger);
   transform: none;
 }
+.todo-card__details {
+  min-height: 34px;
+  padding: 6px 11px;
+  font-size: 0.82rem;
+}
+
+.todo-card__details:hover {
+  transform: none;
+}
+.task-details {
+  display: grid;
+  gap: 22px;
+  padding: 24px;
+}
+
+.task-details__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.task-details__item {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background-color: var(--surface-muted);
+}
+
+.task-details__item h3 {
+  margin: 0 0 7px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.task-details__item p {
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 600px) {
+  .task-details__grid {
+    grid-template-columns: 1fr;
+  }
+}

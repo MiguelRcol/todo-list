@@ -59,9 +59,6 @@ function renderTodos(todoApp) {
     emptyState.append(title, description);
     todosList.appendChild(emptyState);
 
-    emptyState.append(title, description);
-    todosList.appendChild(emptyState);
-
     return;
   }
 
@@ -106,6 +103,22 @@ function renderTodos(todoApp) {
     const actions = document.createElement("div");
     actions.classList.add("todo-card__actions");
 
+    const detailsButton = document.createElement("button");
+
+detailsButton.type = "button";
+detailsButton.classList.add(
+  "todo-card__details",
+  "secondary-button"
+);
+
+detailsButton.textContent = "Details";
+detailsButton.dataset.action = "details";
+
+detailsButton.setAttribute(
+  "aria-label",
+  `View details for ${todo.title}`
+);
+
     const deleteButton = document.createElement("button");
 
     deleteButton.type = "button";
@@ -123,6 +136,7 @@ function renderTodos(todoApp) {
     );
 
     content.append(title, dueDate);
+    actions.appendChild(detailsButton);
     actions.appendChild(deleteButton);
 
     todoCard.append(checkbox, content, actions);
@@ -197,8 +211,62 @@ function setupInboxNavigation(todoApp) {
   });
 }
 
-function setupTodoInteractions(todoApp) {
+function setupTodoInteractions(todoApp){
   const todosList = document.querySelector("#todos-list");
+
+  const detailsDialog = document.querySelector(
+    "#todo-details-dialog"
+  );
+
+  const closeDetailsButton = document.querySelector(
+    "#close-details-dialog"
+  );
+
+  const cancelDetailsButton = document.querySelector(
+    "#cancel-details-dialog"
+  );
+
+  const detailsTitle = document.querySelector(
+    "#details-title"
+  );
+
+  const detailsDescription = document.querySelector(
+    "#details-description"
+  );
+
+  const detailsDueDate = document.querySelector(
+    "#details-due-date"
+  );
+
+  const detailsPriority = document.querySelector(
+    "#details-priority"
+  );
+
+  const detailsStatus = document.querySelector(
+    "#details-status"
+  );
+
+  const detailsProject = document.querySelector(
+    "#details-project"
+  );
+
+  const detailsNotes = document.querySelector(
+    "#details-notes"
+  );
+
+  function closeDetailsDialog() {
+    detailsDialog.close();
+  }
+
+  closeDetailsButton.addEventListener(
+    "click",
+    closeDetailsDialog
+  );
+
+  cancelDetailsButton.addEventListener(
+    "click",
+    closeDetailsDialog
+  );
 
   todosList.addEventListener("change", (event) => {
     const checkbox = event.target.closest(
@@ -226,28 +294,71 @@ function setupTodoInteractions(todoApp) {
   });
 
   todosList.addEventListener("click", (event) => {
-    const deleteButton = event.target.closest(
-      '[data-action="delete"]'
+    const actionButton = event.target.closest(
+      "[data-action]"
     );
 
-    if (!deleteButton) {
+    if (!actionButton) {
       return;
     }
 
-    const todoCard = deleteButton.closest(".todo-card");
+    const todoCard = actionButton.closest(".todo-card");
 
     if (!todoCard) {
       return;
     }
 
     const todoId = todoCard.dataset.todoId;
-    const removed = todoApp.removeTodo(todoId);
+    const action = actionButton.dataset.action;
 
-    if (!removed) {
+    if (action === "delete") {
+      const removed = todoApp.removeTodo(todoId);
+
+      if (!removed) {
+        return;
+      }
+
+      renderTodos(todoApp);
       return;
     }
 
-    renderTodos(todoApp);
+    if (action === "details") {
+      const activeProject = todoApp.getActiveProject();
+
+      if (!activeProject) {
+        return;
+      }
+
+      const todo = activeProject.getTodoById(todoId);
+
+      if (!todo) {
+        return;
+      }
+
+      detailsTitle.textContent = todo.title;
+
+      detailsDescription.textContent =
+        todo.description || "No description";
+
+      detailsDueDate.textContent =
+        todo.dueDate || "No due date";
+
+      detailsPriority.textContent = todo.priority
+        ? todo.priority.charAt(0).toUpperCase() +
+          todo.priority.slice(1)
+        : "No priority";
+
+      detailsStatus.textContent = todo.completed
+        ? "Completed"
+        : "Pending";
+
+      detailsProject.textContent = activeProject.name;
+
+      detailsNotes.textContent =
+        todo.notes || "No notes";
+
+      detailsDialog.showModal();
+    }
   });
 }
 
