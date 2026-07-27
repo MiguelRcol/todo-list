@@ -1,3 +1,90 @@
+let currentView = "project";
+
+function getTodayDateString() {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function formatDueDate(dateString) {
+  if (!dateString) {
+    return "No due date";
+  }
+
+  const date = new Date(`${dateString}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function capitalizeText(text) {
+  if (!text) {
+    return "";
+  }
+
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function getAllTodoEntries(todoApp) {
+  return todoApp.projects.flatMap((project) =>
+    project.todos.map((todo) => ({
+      todo,
+      projectId: project.id,
+      projectName: project.name,
+    }))
+  );
+}
+
+function setActiveSidebarButton(viewName) {
+  const sidebarButtons = document.querySelectorAll(
+    ".sidebar-nav__button"
+  );
+
+  sidebarButtons.forEach((button) => {
+    button.classList.remove(
+      "sidebar-nav__button--active"
+    );
+  });
+
+  if (!viewName) {
+    return;
+  }
+
+  const activeButton = document.querySelector(
+    `[data-view="${viewName}"]`
+  );
+
+  if (activeButton) {
+    activeButton.classList.add(
+      "sidebar-nav__button--active"
+    );
+  }
+}
+
+function updateContentHeader(label, title) {
+  const headerLabel = document.querySelector(
+    ".content-header__label"
+  );
+
+  const headerTitle = document.querySelector(
+    "#current-view-title"
+  );
+
+  headerLabel.textContent = label;
+  headerTitle.textContent = title;
+}
+
 function renderProjects(todoApp) {
   const projectsList = document.querySelector("#projects-list");
 
@@ -15,7 +102,10 @@ function renderProjects(todoApp) {
     button.textContent = project.name;
     button.dataset.projectId = project.id;
 
-    if (project.id === todoApp.activeProjectId) {
+    if (
+      currentView === "project" &&
+      project.id === todoApp.activeProjectId
+    ) {
       button.classList.add("project-item--active");
     }
 
@@ -24,37 +114,36 @@ function renderProjects(todoApp) {
 }
 
 function renderCurrentProject(todoApp) {
-  const currentViewTitle = document.querySelector(
-    "#current-view-title"
-  );
-
   const activeProject = todoApp.getActiveProject();
 
   if (!activeProject) {
     return;
   }
 
-  currentViewTitle.textContent = activeProject.name;
+  updateContentHeader("Project", activeProject.name);
 }
 
-function renderTodos(todoApp) {
+function renderTodoEntries(
+  entries,
+  emptyTitle,
+  emptyDescription,
+  showProjectName = false
+) {
   const todosList = document.querySelector("#todos-list");
-  const activeProject = todoApp.getActiveProject();
 
   todosList.replaceChildren();
 
-  if (!activeProject || activeProject.todos.length === 0) {
+  if (entries.length === 0) {
     const emptyState = document.createElement("div");
     emptyState.classList.add("empty-state");
 
     const title = document.createElement("h2");
     title.classList.add("empty-state__title");
-    title.textContent = "No tasks yet";
+    title.textContent = emptyTitle;
 
     const description = document.createElement("p");
     description.classList.add("empty-state__description");
-    description.textContent =
-      "Create your first task to start organizing this project.";
+    description.textContent = emptyDescription;
 
     emptyState.append(title, description);
     todosList.appendChild(emptyState);
@@ -62,7 +151,9 @@ function renderTodos(todoApp) {
     return;
   }
 
-  activeProject.todos.forEach((todo) => {
+  entries.forEach((entry) => {
+    const { todo, projectId, projectName } = entry;
+
     const todoCard = document.createElement("article");
 
     todoCard.classList.add(
@@ -71,6 +162,7 @@ function renderTodos(todoApp) {
     );
 
     todoCard.dataset.todoId = todo.id;
+    todoCard.dataset.projectId = projectId;
 
     if (todo.completed) {
       todoCard.classList.add("todo-card--completed");
@@ -96,9 +188,14 @@ function renderTodos(todoApp) {
     title.classList.add("todo-card__title");
     title.textContent = todo.title;
 
-    const dueDate = document.createElement("p");
-    dueDate.classList.add("todo-card__date");
-    dueDate.textContent = todo.dueDate || "No due date";
+    const metadata = document.createElement("p");
+    metadata.classList.add("todo-card__date");
+
+    const formattedDate = formatDueDate(todo.dueDate);
+
+    metadata.textContent = showProjectName
+      ? `${formattedDate} · ${projectName}`
+      : formattedDate;
 
     const actions = document.createElement("div");
     actions.classList.add("todo-card__actions");
@@ -135,12 +232,115 @@ function renderTodos(todoApp) {
       `Delete ${todo.title}`
     );
 
-    content.append(title, dueDate);
+    content.append(title, metadata);
     actions.append(detailsButton, deleteButton);
 
     todoCard.append(checkbox, content, actions);
     todosList.appendChild(todoCard);
   });
+}
+
+function renderTodos(todoApp) {
+  const activeProject = todoApp.getActiveProject();
+
+  if (!activeProject) {
+    renderTodoEntries(
+      [],
+      "Project not found",
+      "The selected project is no longer available."
+    );
+
+    return;
+  }
+
+  const entries = activeProject.todos.map((todo) => ({
+    todo,
+    projectId: activeProject.id,
+    projectName: activeProject.name,
+  }));
+
+  renderCurrentProject(todoApp);
+
+  renderTodoEntries(
+    entries,
+    "No tasks yet",
+    "Create your first task to start organizing this project."
+  );
+}
+
+function renderFilteredView(todoApp, viewName) {
+  const allEntries = getAllTodoEntries(todoApp);
+  const today = getTodayDateString();
+
+  let filteredEntries = [];
+  let title = "";
+  let emptyTitle = "";
+  let emptyDescription = "";
+
+  if (viewName === "today") {
+    title = "Today";
+
+    filteredEntries = allEntries.filter(
+      ({ todo }) =>
+        todo.dueDate === today &&
+        !todo.completed
+    );
+
+    emptyTitle = "Nothing due today";
+    emptyDescription =
+      "You have no pending tasks scheduled for today.";
+  }
+
+  if (viewName === "upcoming") {
+    title = "Upcoming";
+
+    filteredEntries = allEntries.filter(
+      ({ todo }) =>
+        todo.dueDate &&
+        todo.dueDate > today &&
+        !todo.completed
+    );
+
+    filteredEntries.sort((firstEntry, secondEntry) =>
+      firstEntry.todo.dueDate.localeCompare(
+        secondEntry.todo.dueDate
+      )
+    );
+
+    emptyTitle = "No upcoming tasks";
+    emptyDescription =
+      "Tasks with future due dates will appear here.";
+  }
+
+  if (viewName === "completed") {
+    title = "Completed";
+
+    filteredEntries = allEntries.filter(
+      ({ todo }) => todo.completed
+    );
+
+    emptyTitle = "No completed tasks";
+    emptyDescription =
+      "Tasks you complete will appear here.";
+  }
+
+  updateContentHeader("Filter", title);
+
+  renderTodoEntries(
+    filteredEntries,
+    emptyTitle,
+    emptyDescription,
+    true
+  );
+}
+
+function renderCurrentView(todoApp) {
+  if (currentView === "project") {
+    renderTodos(todoApp);
+    return;
+  }
+
+  renderFilteredView(todoApp, currentView);
 }
 
 function setupProjectNavigation(todoApp) {
@@ -154,59 +354,90 @@ function setupProjectNavigation(todoApp) {
     }
 
     const projectId = projectButton.dataset.projectId;
+
     const changed = todoApp.setActiveProject(projectId);
 
     if (!changed) {
       return;
     }
 
-    const sidebarButtons = document.querySelectorAll(
-      ".sidebar-nav__button"
-    );
+    currentView = "project";
 
-    sidebarButtons.forEach((button) => {
-      button.classList.remove(
-        "sidebar-nav__button--active"
-      );
-    });
+    setActiveSidebarButton(null);
 
     renderProjects(todoApp);
-    renderCurrentProject(todoApp);
-    renderTodos(todoApp);
+    renderCurrentView(todoApp);
   });
 }
 
 function setupInboxNavigation(todoApp) {
-  const inboxButton = document.querySelector(
-    '[data-view="inbox"]'
+  const sidebarNavigation = document.querySelector(
+    ".sidebar-nav"
   );
 
-  inboxButton.addEventListener("click", () => {
-    const changed = todoApp.setActiveProject(
-      todoApp.defaultProjectId
-    );
+  sidebarNavigation.addEventListener("click", (event) => {
+    const viewButton = event.target.closest("[data-view]");
 
-    if (!changed) {
+    if (!viewButton) {
       return;
     }
 
-    const sidebarButtons = document.querySelectorAll(
-      ".sidebar-nav__button"
-    );
+    const viewName = viewButton.dataset.view;
 
-    sidebarButtons.forEach((button) => {
-      button.classList.remove(
-        "sidebar-nav__button--active"
+    if (viewName === "inbox") {
+      const changed = todoApp.setActiveProject(
+        todoApp.defaultProjectId
       );
-    });
 
-    inboxButton.classList.add(
-      "sidebar-nav__button--active"
-    );
+      if (!changed) {
+        return;
+      }
+
+      currentView = "project";
+
+      setActiveSidebarButton("inbox");
+
+      renderProjects(todoApp);
+      renderCurrentView(todoApp);
+
+      return;
+    }
+
+    if (
+      viewName !== "today" &&
+      viewName !== "upcoming" &&
+      viewName !== "completed"
+    ) {
+      return;
+    }
+
+    currentView = viewName;
+
+    setActiveSidebarButton(viewName);
 
     renderProjects(todoApp);
-    renderCurrentProject(todoApp);
-    renderTodos(todoApp);
+    renderCurrentView(todoApp);
+  });
+}
+
+function populateProjectOptions(todoApp) {
+  const projectSelect = document.querySelector(
+    "#todo-project"
+  );
+
+  projectSelect.replaceChildren();
+
+  todoApp.projects.forEach((project) => {
+    const option = document.createElement("option");
+
+    option.value = project.id;
+    option.textContent = project.name;
+
+    if (project.id === todoApp.activeProjectId) {
+      option.selected = true;
+    }
+
+    projectSelect.appendChild(option);
   });
 }
 
@@ -261,8 +492,6 @@ function setupTodoInteractions(todoApp) {
   let selectedProjectId = null;
 
   function closeDetailsDialog() {
-    selectedTodoId = null;
-    selectedProjectId = null;
     detailsDialog.close();
   }
 
@@ -292,13 +521,18 @@ function setupTodoInteractions(todoApp) {
     }
 
     const todoId = todoCard.dataset.todoId;
-    const changed = todoApp.toggleTodoComplete(todoId);
+    const projectId = todoCard.dataset.projectId;
+
+    const changed = todoApp.toggleTodoComplete(
+      todoId,
+      projectId
+    );
 
     if (!changed) {
       return;
     }
 
-    renderTodos(todoApp);
+    renderCurrentView(todoApp);
   });
 
   todosList.addEventListener("click", (event) => {
@@ -317,34 +551,38 @@ function setupTodoInteractions(todoApp) {
     }
 
     const todoId = todoCard.dataset.todoId;
+    const projectId = todoCard.dataset.projectId;
     const action = actionButton.dataset.action;
 
+    const project = todoApp.getProjectById(projectId);
+
+    if (!project) {
+      return;
+    }
+
+    const todo = project.getTodoById(todoId);
+
+    if (!todo) {
+      return;
+    }
+
     if (action === "delete") {
-      const removed = todoApp.removeTodo(todoId);
+      const removed = todoApp.removeTodo(
+        todoId,
+        projectId
+      );
 
       if (!removed) {
         return;
       }
 
-      renderTodos(todoApp);
+      renderCurrentView(todoApp);
       return;
     }
 
     if (action === "details") {
-      const activeProject = todoApp.getActiveProject();
-
-      if (!activeProject) {
-        return;
-      }
-
-      const todo = activeProject.getTodoById(todoId);
-
-      if (!todo) {
-        return;
-      }
-
       selectedTodoId = todo.id;
-      selectedProjectId = activeProject.id;
+      selectedProjectId = project.id;
 
       detailsTitle.textContent = todo.title;
 
@@ -352,18 +590,16 @@ function setupTodoInteractions(todoApp) {
         todo.description || "No description";
 
       detailsDueDate.textContent =
-        todo.dueDate || "No due date";
+        formatDueDate(todo.dueDate);
 
-      detailsPriority.textContent = todo.priority
-        ? todo.priority.charAt(0).toUpperCase() +
-          todo.priority.slice(1)
-        : "No priority";
+      detailsPriority.textContent =
+        capitalizeText(todo.priority) || "No priority";
 
       detailsStatus.textContent = todo.completed
         ? "Completed"
         : "Pending";
 
-      detailsProject.textContent = activeProject.name;
+      detailsProject.textContent = project.name;
 
       detailsNotes.textContent =
         todo.notes || "No notes";
@@ -445,6 +681,7 @@ function setupTodoInteractions(todoApp) {
 
     detailsDialog.close();
     todoDialog.showModal();
+
     titleInput.focus();
   });
 }
@@ -485,6 +722,11 @@ function setupProjectForm(todoApp) {
   closeButton.addEventListener("click", closeDialog);
   cancelButton.addEventListener("click", closeDialog);
 
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeDialog();
+  });
+
   nameInput.addEventListener("input", () => {
     if (nameInput.value.trim()) {
       errorMessage.textContent = "";
@@ -507,31 +749,22 @@ function setupProjectForm(todoApp) {
       return;
     }
 
-    todoApp.addProject(projectName);
-    renderProjects(todoApp);
+    const newProject = todoApp.addProject(projectName);
 
-    closeDialog();
-  });
-}
-
-function populateProjectOptions(todoApp) {
-  const projectSelect = document.querySelector(
-    "#todo-project"
-  );
-
-  projectSelect.replaceChildren();
-
-  todoApp.projects.forEach((project) => {
-    const option = document.createElement("option");
-
-    option.value = project.id;
-    option.textContent = project.name;
-
-    if (project.id === todoApp.activeProjectId) {
-      option.selected = true;
+    if (!newProject) {
+      return;
     }
 
-    projectSelect.appendChild(option);
+    todoApp.setActiveProject(newProject.id);
+
+    currentView = "project";
+
+    setActiveSidebarButton(null);
+
+    renderProjects(todoApp);
+    renderCurrentView(todoApp);
+
+    closeDialog();
   });
 }
 
@@ -589,6 +822,7 @@ function setupTodoForm(todoApp) {
     form.reset();
 
     form.dataset.mode = "create";
+
     delete form.dataset.todoId;
     delete form.dataset.projectId;
 
@@ -610,6 +844,7 @@ function setupTodoForm(todoApp) {
     form.reset();
 
     form.dataset.mode = "create";
+
     delete form.dataset.todoId;
     delete form.dataset.projectId;
 
@@ -626,6 +861,11 @@ function setupTodoForm(todoApp) {
 
   closeButton.addEventListener("click", closeDialog);
   cancelButton.addEventListener("click", closeDialog);
+
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeDialog();
+  });
 
   titleInput.addEventListener("input", () => {
     if (titleInput.value.trim()) {
@@ -677,7 +917,7 @@ function setupTodoForm(todoApp) {
         return;
       }
 
-      renderTodos(todoApp);
+      renderCurrentView(todoApp);
       closeDialog();
 
       return;
@@ -701,29 +941,16 @@ function setupTodoForm(todoApp) {
 
     todoApp.setActiveProject(projectId);
 
-    const sidebarButtons = document.querySelectorAll(
-      ".sidebar-nav__button"
-    );
-
-    sidebarButtons.forEach((button) => {
-      button.classList.remove(
-        "sidebar-nav__button--active"
-      );
-    });
+    currentView = "project";
 
     if (projectId === todoApp.defaultProjectId) {
-      const inboxButton = document.querySelector(
-        '[data-view="inbox"]'
-      );
-
-      inboxButton.classList.add(
-        "sidebar-nav__button--active"
-      );
+      setActiveSidebarButton("inbox");
+    } else {
+      setActiveSidebarButton(null);
     }
 
     renderProjects(todoApp);
-    renderCurrentProject(todoApp);
-    renderTodos(todoApp);
+    renderCurrentView(todoApp);
 
     closeDialog();
   });
