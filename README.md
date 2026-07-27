@@ -8,11 +8,9 @@ FocusBoard is a task and project management application built with vanilla JavaS
 
 ## Preview
 
-Add a screenshot of the application here:
 
-```markdown
-![FocusBoard preview](./docs/focusboard-preview.png)
-```
+<img width="2816" height="1580" alt="image" src="https://github.com/user-attachments/assets/3da4c58a-aa78-4d49-8cc6-73cdb726f068" />
+
 
 ## Features
 
