@@ -8,6 +8,7 @@ class Project {
 
   addTodo(todo) {
     this.todos.push(todo);
+    return todo;
   }
 
   getTodoById(todoId) {
@@ -15,7 +16,13 @@ class Project {
   }
 
   removeTodo(todoId) {
-    this.todos = this.todos.filter((todo) => todo.id !== todoId);
+    const previousLength = this.todos.length;
+
+    this.todos = this.todos.filter(
+      (todo) => todo.id !== todoId
+    );
+
+    return this.todos.length < previousLength;
   }
 }
 

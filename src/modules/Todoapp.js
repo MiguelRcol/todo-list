@@ -19,7 +19,9 @@ class TodoApp {
   }
 
   getProjectById(projectId) {
-    return this.projects.find((project) => project.id === projectId);
+    return this.projects.find(
+      (project) => project.id === projectId
+    );
   }
 
   setActiveProject(projectId) {
@@ -50,7 +52,8 @@ class TodoApp {
     }
 
     this.projects = this.projects.filter(
-      (currentProject) => currentProject.id !== projectId
+      (currentProject) =>
+        currentProject.id !== projectId
     );
 
     if (this.activeProjectId === projectId) {
@@ -87,25 +90,23 @@ class TodoApp {
     return newTodo;
   }
 
-  removeTodo(todoId, projectId = this.activeProjectId) {
+  removeTodo(
+    todoId,
+    projectId = this.activeProjectId
+  ) {
     const project = this.getProjectById(projectId);
 
     if (!project) {
       return false;
     }
 
-    const todo = project.getTodoById(todoId);
-
-    if (!todo) {
-      return false;
-    }
-
-    project.removeTodo(todoId);
-
-    return true;
+    return project.removeTodo(todoId);
   }
 
-  toggleTodoComplete(todoId, projectId = this.activeProjectId) {
+  toggleTodoComplete(
+    todoId,
+    projectId = this.activeProjectId
+  ) {
     const project = this.getProjectById(projectId);
 
     if (!project) {
@@ -123,7 +124,11 @@ class TodoApp {
     return true;
   }
 
-  updateTodo(todoId, updates, projectId = this.activeProjectId) {
+  updateTodo(
+    todoId,
+    updates,
+    projectId = this.activeProjectId
+  ) {
     const project = this.getProjectById(projectId);
 
     if (!project) {
