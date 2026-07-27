@@ -198,6 +198,118 @@ function setupTodoInteractions(todoApp) {
     renderTodos(todoApp);
   });
 }
+function setupProjectForm(todoApp) {
+  const dialog = document.querySelector("#project-dialog");
+  const form = document.querySelector("#project-form");
+  const nameInput = document.querySelector("#project-name");
+  const errorMessage = document.querySelector(
+    "#project-name-error"
+  );
+
+  const openButton = document.querySelector(
+    "#open-project-form"
+  );
+
+  const closeButton = document.querySelector(
+    "#close-project-form"
+  );
+
+  const cancelButton = document.querySelector(
+    "#cancel-project-form"
+  );
+
+  openButton.addEventListener("click", () => {
+    dialog.showModal();
+    nameInput.focus();
+  });
+
+  function closeDialog() {
+    form.reset();
+    errorMessage.textContent = "";
+    nameInput.removeAttribute("aria-invalid");
+    dialog.close();
+  }
+
+  closeButton.addEventListener("click", closeDialog);
+  cancelButton.addEventListener("click", closeDialog);
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const projectName = nameInput.value.trim();
+
+    if (!projectName) {
+      errorMessage.textContent =
+        "Please enter a project name.";
+
+      nameInput.setAttribute("aria-invalid", "true");
+      nameInput.focus();
+
+      return;
+    }
+
+    todoApp.addProject(projectName);
+    renderProjects(todoApp);
+
+    closeDialog();
+  });
+}
+function populateProjectOptions(todoApp) {
+  const projectSelect = document.querySelector(
+    "#todo-project"
+  );
+
+  projectSelect.replaceChildren();
+
+  todoApp.projects.forEach((project) => {
+    const option = document.createElement("option");
+
+    option.value = project.id;
+    option.textContent = project.name;
+
+    if (project.id === todoApp.activeProjectId) {
+      option.selected = true;
+    }
+
+    projectSelect.appendChild(option);
+  });
+}
+function setupTodoForm(todoApp) {
+  const dialog = document.querySelector("#todo-dialog");
+  const form = document.querySelector("#todo-form");
+  const titleInput = document.querySelector("#todo-title");
+  const errorMessage = document.querySelector(
+    "#todo-title-error"
+  );
+
+  const openButton = document.querySelector(
+    "#open-todo-form"
+  );
+
+  const closeButton = document.querySelector(
+    "#close-todo-form"
+  );
+
+  const cancelButton = document.querySelector(
+    "#cancel-todo-form"
+  );
+
+  openButton.addEventListener("click", () => {
+    populateProjectOptions(todoApp);
+    dialog.showModal();
+    titleInput.focus();
+  });
+
+  function closeDialog() {
+    form.reset();
+    errorMessage.textContent = "";
+    titleInput.removeAttribute("aria-invalid");
+    dialog.close();
+  }
+
+  closeButton.addEventListener("click", closeDialog);
+  cancelButton.addEventListener("click", closeDialog);
+}
 
 export {
   renderProjects,
@@ -206,4 +318,6 @@ export {
   setupProjectNavigation,
   setupInboxNavigation,
   setupTodoInteractions,
+  setupProjectForm,
+  setupTodoForm,
 };
