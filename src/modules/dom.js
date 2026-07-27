@@ -125,7 +125,9 @@ function setupProjectNavigation(todoApp) {
     );
 
     sidebarButtons.forEach((button) => {
-      button.classList.remove("sidebar-nav__button--active");
+      button.classList.remove(
+        "sidebar-nav__button--active"
+      );
     });
 
     renderProjects(todoApp);
@@ -153,7 +155,9 @@ function setupInboxNavigation(todoApp) {
     );
 
     sidebarButtons.forEach((button) => {
-      button.classList.remove("sidebar-nav__button--active");
+      button.classList.remove(
+        "sidebar-nav__button--active"
+      );
     });
 
     inboxButton.classList.add(
@@ -166,10 +170,40 @@ function setupInboxNavigation(todoApp) {
   });
 }
 
+function setupTodoInteractions(todoApp) {
+  const todosList = document.querySelector("#todos-list");
+
+  todosList.addEventListener("change", (event) => {
+    const checkbox = event.target.closest(
+      ".todo-card__checkbox"
+    );
+
+    if (!checkbox) {
+      return;
+    }
+
+    const todoCard = checkbox.closest(".todo-card");
+
+    if (!todoCard) {
+      return;
+    }
+
+    const todoId = todoCard.dataset.todoId;
+    const changed = todoApp.toggleTodoComplete(todoId);
+
+    if (!changed) {
+      return;
+    }
+
+    renderTodos(todoApp);
+  });
+}
+
 export {
   renderProjects,
   renderCurrentProject,
   renderTodos,
   setupProjectNavigation,
   setupInboxNavigation,
+  setupTodoInteractions,
 };

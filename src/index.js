@@ -8,6 +8,7 @@ import {
   renderTodos,
   setupProjectNavigation,
   setupInboxNavigation,
+  setupTodoInteractions,
 } from "./modules/dom.js";
 
 const todoApp = new TodoApp();
@@ -34,10 +35,10 @@ todoApp.addTodo(
   "",
   university.id
 );
-
 renderProjects(todoApp);
 renderCurrentProject(todoApp);
 renderTodos(todoApp);
 
 setupProjectNavigation(todoApp);
 setupInboxNavigation(todoApp);
+setupTodoInteractions(todoApp);
