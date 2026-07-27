@@ -902,3 +902,41 @@ a {
 #todo-details-dialog .modal__close {
   flex-shrink: 0;
 }
+.project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-row .project-item {
+  width: 100%;
+  min-width: 0;
+}
+
+.project-delete {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0;
+  transition:
+    opacity 150ms ease,
+    color 150ms ease,
+    background-color 150ms ease;
+}
+
+.project-row:hover .project-delete,
+.project-row:focus-within .project-delete {
+  opacity: 1;
+}
+
+.project-delete:hover {
+  color: var(--danger);
+  background-color: rgb(185 77 69 / 10%);
+  transform: none;
+}
+
+@media (hover: none) {
+  .project-delete {
+    opacity: 1;
+  }
+}
